@@ -8,13 +8,13 @@
 The UCR Standard Library for Assembly Language Programmers,
 Written By Randall Hyde and others, is
 
-  sssssss      ss     ss       ss       sssssss     sssssss
-  ss           ss     ss      ssss      ss    ss    ss
-  ss           ss     ss     ss  ss     ss    ss    ss
-  sssssss      sssssssss    ssssssss    sssssss     sssss        ssssssss
-       ss      ss     ss    ss    ss    ss  ss      ss
-       ss      ss     ss    ss    ss    ss   ss     ss
-  sssssss      ss     ss    ss    ss    ss    ss    sssssss
+  sssssss      ss     ss       ss       sssssss     sssssss  
+  ss           ss     ss      ssss      ss    ss    ss  
+  ss           ss     ss     ss  ss     ss    ss    ss  
+  sssssss      sssssssss    ssssssss    sssssss     sssss        ssssssss  
+       ss      ss     ss    ss    ss    ss  ss      ss  
+       ss      ss     ss    ss    ss    ss   ss     ss  
+  sssssss      ss     ss    ss    ss    ss    ss    sssssss  
 
 
 
