@@ -1,0 +1,195 @@
+StdGrp		group	stdlib, stddata
+;
+stddata		segment	para public 'sldata'
+stddata		ends
+stdlib		segment	para public 'slcode'
+
+
+; Structured Array Stuff:
+
+
+slcall	macro	adrs
+	db	09ah			;Far call
+	dd	stdgrp:adrs		;Address of routine to call
+	endm
+
+
+
+; Equates for structured error return codes:
+
+AryNoError	=	0			;Should never occur
+AryTypeMismatch	=	1			;Array type mismatch
+AryOverflow	=	2			;Arithmetic overflow
+AryDiv0		=	3			;Division by zero
+AryIllegalOp	=	4			;Illegal operation on array
+AryBounds	=	5			;Array index error
+AryMemory	=	6			;Memory allocation error
+AryBadDV	=	7			;Illegal dope vector
+AryNull		=	8			;Null pointer to array data
+
+
+
+
+
+
+
+
+; DopeVector gives an approximate structure for the internal composition of
+; a structured array data type.  Approximate because the last field,
+; DimensionList, may be several words long (it varies, containing NumDimen-
+; sions words).  In general, it is not a good idea to mess with the internal
+; format of an array structure.  However, for those programs which *must*
+; tweak this stuff, it's always best to use these fields rather than numeric
+; offsets into the structure.
+;
+DopeVector	struc
+ArrayData	dd	?
+SizeInBytes	dw	?
+ElementSize	dw	?
+NumDimensions	dw	?
+DimensionList	dw	?	;One word for each dimension
+DopeVector	ends
+
+
+; WHOA!  This is a complex macro.  It lets you allocate dope vectors for a
+; structured array. See the STDLIB.TXT file for more details.
+
+array		macro		name, ElementSize, Dims, InitialValues
+		local		SizeDims, InitAry, NumElements
+;;
+;; First, allocate storage for the array pointer:
+;;
+		align		dword			;Align for speed.
+name		dd		InitAry
+;;
+;; Count the number of dimensions and the size of the array:
+;;
+SizeDims	=		0
+NumElements	=		1
+		ifnb		<Dims>
+		irp		ThisDim,<Dims>
+SizeDims	=		SizeDims+1
+NumElements	=		NumElements * ThisDim
+		endm
+;;
+;; Output the total number of bytes in this array:
+;;
+		dw		NumElements*ElementSize
+;;
+;; Output the element size here:
+;;
+		dw		ElementSize
+;;
+;; Okay, output the number of dimensions:
+;;
+		dw		SizeDims
+;;
+;; Now output the size of each dimension:
+;;
+		irp		ThisDim,<Dims>
+		dw		ThisDim
+		endm
+;;
+;; If there are initial values, build the array here:
+;;
+		ifnb		<InitialValues>
+;;
+;; If there are a set of initial values, build the actual array
+;; immediately following the smart array data structure:
+;;
+InitAry		equ		this byte
+;;
+;; The following loop repeats until we've output as many elements as
+;; are present in the array.  Note that this may be less, more, or the
+;; same number of items present in the initial values list.
+;; ExitWhen0 guarantees that we don't output too many values.
+;;
+ExitWhen0	=		NumElements
+;;
+;; The following loop ensures that the output *at least* enough items to
+;; the array.  It will repeat more than once if the inital value list contains
+;; fewer elements than are needed for the actual array.
+;;
+		rept		NumElements
+;;
+;; This loop processes each item in the initial list.  Note that it may
+;; terminate early if there are more items in the list than there are
+;; array elements.  By the same token, this loop may get restarted over and
+;; over again if there are fewer elements in the list than in the actual array.
+;;
+		irp		ThisValue, <InitialValues>
+;;
+;; Kludge to handle different types!
+;;
+		if		ElementSize eq 1
+		db		ThisValue
+		else
+		if		ElementSize eq 2
+		dw		ThisValue
+		else
+		if		ElementSize eq 4
+		dd		ThisValue
+		else
+		if		ElementSize eq 8
+		dq		ThisValue
+		else
+		if		ElementSize eq 10
+		dt		ThisValue
+		else
+		if		ThisValue ne 0
+		%out		If the element size is not 1, 2, 4, 8, or 10
+		%out		then the initial values, if present, must all
+		%out		be zero.
+		.err
+		else
+		db		ElementSize dup (0)
+		endif
+		endif
+		endif
+		endif
+		endif
+		endif
+;;
+;; Well, we've just processed another initial value.  Check to see if we've
+;; processed all the array elements:
+;;
+ExitWhen0	=		ExitWhen0 - 1
+		if		ExitWhen0 eq 0
+		exitm					;;Quit irp macro
+		endif
+;;
+		endm					;;End of IRP
+;;
+;; Two situations force the end of the IRP loop above: either we've
+;; exhausted the items in the initial values list, or we've filled the
+;; array.  At this point, check to make sure we haven't filled the array.
+;;
+		if		ExitWhen0 eq 0
+		exitm					;;Quit REPT macro.
+		endif
+;;
+		endm					;;End of REPT.
+;;
+;;
+;; If the initial values list is blank, drop down here!
+;;
+		else
+;;
+;; If the user did not specify a set of initial values, initialize the
+;; array pointer to NIL:
+;;
+InitAry		=		0
+		endif
+		else
+;;
+;; If the DIMS parameter was not present, generate an error here:
+;;
+		%out		Error in ARRAY declaration, must have array bounds.
+		err
+		endif
+		endm
+
+
+
+stdlib		ends
+
