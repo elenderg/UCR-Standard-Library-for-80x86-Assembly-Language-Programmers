@@ -1,0 +1,23 @@
+#repetition 128,60000 
+#code ("SHIFTING USING CL")
+%init
+mov cl, 7
+mov ax, 1
+%do
+shr ax, cl
+#endcode
+
+#code ("SHIFTING NOT USING CL")
+%init
+mov cl, 7
+mov ax, 1
+%do
+shr ax, 1
+shr ax, 1
+shr ax, 1
+shr ax, 1
+shr ax, 1
+shr ax, 1
+shr ax, 1
+#endcode
+#end

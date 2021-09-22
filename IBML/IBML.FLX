@@ -1,0 +1,89 @@
+%{
+#include "ibml.h"
+#include <string.h>
+
+/* lines- holds pointers to the lines of text for the main body of the loop */
+/* discounts- holds pointers to the discounted lines of text		    */
+/* inits- holds pointers to the lines of initialization code		    */
+/* els- holds pointers to code which executes at the top of each loop.	    */
+/* lineindx, discntindx, initindx, elindx- # of lines in each array.	    */
+
+int  lineindx, discntindx, initindx, elindx;
+char *lines[256], *discounts [256], *inits[256], *els[256];
+char *StrVal;
+char ThisLine[256];
+extern int yylval;
+extern int TestCnt;
+
+%}
+
+%x	indata incode instring discount init eachloop
+%%
+[ \t\n]+		;
+
+ /* Handle the data lines here 					*/
+ /* Once we see "#data" keep processing lines as data lines	*/
+ /* until we see the corresponding "#enddata".			*/
+
+
+^#data.*\n		{BEGIN indata;}
+<indata>#enddata.*\n    {BEGIN 0;}
+<indata>.*\n		{return dataline;}
+
+ /* Following the data lines comes the code.  Initialize the	*/
+ /* line indices upon seeing "#code"				*/
+
+^#code			{initindx = elindx = discntindx = lineindx = 0;
+			 return code;}
+
+ /* Grab and save the *ENTIRE* initialization section here	*/
+ /* (assuming, of course, an initialization section is present.	*/
+
+^\%init.*\n		{BEGIN init;}
+<init>^\%do.*\n		{BEGIN incode;}		/* We can end with either	*/
+<init>^\%discount.*\n	{BEGIN discount;}	/* do, discount, or eachloop	*/
+<init>^\%eachloop.*\n	{BEGIN eachloop;}
+<init>.*\n		{inits [initindx++] = strdup(yytext);}
+
+
+ /* Grab and save the *ENTIRE* "each loop" section here, if present.	*/
+
+^\%eachloop.*\n		{BEGIN eachloop;}
+<eachloop>^\%do.*\n	{BEGIN incode;}
+<eachloop>^\%discount.*\n {BEGIN discount;}
+<eachloop>.*\n		{els [elindx++] = strdup(yytext);}
+
+
+ /* Grab and save the entire discount section here.	*/
+
+^\%discount.*\n		{BEGIN discount;}
+<discount>^\%do.*\n	{BEGIN incode;}
+<discount>.*\n		{discounts [discntindx++] = strdup(yytext);}
+
+ /* Grab and save the entire body here.			*/
+
+^\%do.*\n		{BEGIN incode;}
+<incode>^#endcode.*\n	{BEGIN 0; return codelines;}
+<incode>.*\n		{lines [lineindx++] = strdup(yytext);}
+
+
+ /* Handle misc commands down here			*/
+
+^#repetitions		return repetitions;
+^#unravel		return unravel;
+^#end			return end;
+
+
+ /* handle numbers and strings down here */
+
+[0-9]+			{yylval = atoi(yytext); return decimal;}
+\"			{BEGIN instring;}
+<instring>\"		{BEGIN 0; return string;}
+<instring>[^\"\n]*	{StrVal = strdup(yytext);}
+
+
+ /* Anything else is an error, return it to the parser for processing */
+
+.			return yytext[0];
+
+%%

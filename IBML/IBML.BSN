@@ -1,0 +1,208 @@
+%{
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+extern int lineindx, discntindx, initindx, elindx;
+extern char *lines[], *discounts[], *inits[], *els[];
+extern char *StrVal;
+extern char *yytext;
+extern FILE *yyin;
+FILE *skelfile;
+int repeats1, repeats2, TestCnt;
+int unravels;
+void yyerror(char*);
+void getline(char*, FILE*);
+void nextsection(void);
+%}
+
+%token 	dataline
+%token	code
+%token	codelines
+%token	repetitions
+%token	unravel
+%token	decimal
+%token	string
+%token	end
+
+%union {  char *s;  int i; }
+
+%%
+pgm:		DataSection 
+		{nextsection();
+		 repeats1 = 0xffff;
+		 repeats2 = 5;
+		 unravels = 1;
+		} 
+		CodeSection {nextsection();};
+
+vars:		/* empty */
+	|	repetitions decimal ',' decimal 
+			{repeats1 = $<i>2; repeats2 = $<i>4;} 
+			vars
+
+	|	unravel decimal {unravels = $<i>2} vars
+	;
+
+DataSection: 	/* empty */
+	|	dataline {puts(yytext);} DataSection
+	;
+
+CodeSection:	end
+	|	vars code '(' string ')' 
+		codelines
+		    {	int i, j;
+
+
+			/* First, compute the overhead time */
+
+			printf(".macro00%d\tmacro\n",TestCnt);
+			for (i=0; i < initindx; ++i)
+			{
+				printf("%s",inits[i]);
+			}
+
+			printf("\t\tprint\n\t\tdb\t\"Computing Overhead: %s\",cr,lf,0\n",
+				StrVal);
+			puts("\t\tcall\t.GetTicks");
+			puts("\t\tmov\t.TimeStart, DX");
+			printf("\t\tmov\t.OuterLoopCtr, %d\n",repeats1);
+			printf(".Outerlp%d:\tmov\t.InnerLoopCtr, %d\n",
+					TestCnt, repeats2);
+			printf(".Innerlp%d:\n",TestCnt);
+
+			for (i=0; i < elindx; ++i)
+			{
+				printf("%s",els[i]);
+			}
+
+			printf("\t\trept\t%d\n",unravels);
+
+			for (i=0; i < discntindx; ++i)
+			{
+				printf("%s",discounts[i]);
+				free(discounts[i]);
+			}
+			puts("\t\tendm\n\n");
+			puts("\t\tdec\t.InnerLoopCtr");
+			printf("\t\tjz\t.TS0000%d\n",TestCnt);
+			printf("\t\tjmp\t.Innerlp%d\n",TestCnt);
+			printf(".TS0000%d:\tdec\t.OuterLoopCtr\n",TestCnt);
+			printf("\t\tjz\t.TS0001%d\n",TestCnt);
+			printf("\t\tjmp\t.Outerlp%d\n",TestCnt);
+			printf(".TS0001%d:\tcall\t.GetTicks\n",TestCnt);
+			puts("\t\tmov\tax, dx");
+			puts("\t\tsub\tax, .TimeStart");
+			puts("\t\tmov\t.OverHead, ax");
+			++TestCnt;
+			puts("\t\tendm\n\n");
+			printf("\t\t.macro00%d\n\n",TestCnt-1);
+
+
+			/* Now, compute the running time of the desired code */
+
+
+			printf(".macro00%d\tmacro\n",TestCnt);
+			for (i=0; i < initindx; ++i)
+			{
+				printf("%s",inits[i]);
+				free(inits[i]);
+			}
+			printf("\t\tprint\n\t\tdb\t\"Testing: %s\",cr,lf,0\n",
+				StrVal);
+			puts("\t\tcall\t.GetTicks");
+			puts("\t\tmov\t.TimeStart, DX");
+			printf("\t\tmov\t.OuterLoopCtr, %d\n",repeats1);
+			printf(".Outerlp%d:\tmov\t.InnerLoopCtr, %d\n",
+					TestCnt, repeats2);
+			printf(".Innerlp%d:\n",TestCnt);
+			for (i=0; i < elindx; ++i)
+			{
+				printf("%s",els[i]);
+				free(els[i]);
+			}
+			printf("\t\trept\t%d\n",unravels);
+			for (i=0; i < lineindx; ++i)
+			{
+				printf("%s",lines[i]);
+				free(lines[i]);
+			}
+			puts("\t\tendm");
+			puts("\t\tdec\t.InnerLoopCtr");
+			printf("\t\tjz\t.TS0000%d\n",TestCnt);
+			printf("\t\tjmp\t.Innerlp%d\n",TestCnt);
+			printf(".TS0000%d:\tdec\t.OuterLoopCtr\n",TestCnt);
+			printf("\t\tjz\t.TS0001%d\n",TestCnt);
+			printf("\t\tjmp\t.Outerlp%d\n",TestCnt);
+			printf(".TS0001%d:\tcall\t.GetTicks\n",TestCnt);
+			puts("\t\tprint");
+			printf("\t\tdb\t\"%s :\",0\n",StrVal);
+			puts("\t\tmov\tax, dx");
+			puts("\t\tsub\tax, .TimeStart");
+			puts("\t\tsub\tax, .OverHead");
+			puts("\t\tputi");
+			puts("\t\tputcr");
+			++TestCnt;
+			puts("\t\tendm\n\n");
+			printf("\t\t.macro00%d\n\n\n",TestCnt-1);
+;
+			free(StrVal);
+		    }
+		CodeSection
+	;
+%%
+void yyerror(char *msg)
+{
+	puts(msg);
+	exit(1);
+}
+
+void getline(char *inp, FILE *f)
+{
+	char ch;
+
+	while (((ch=fgetc(f)) != NULL) && (ch != '\n')) 
+		*(inp++) = ch;
+	*inp = 0;
+}
+
+void nextsection()
+{
+	char inputline[1024];
+
+		inputline[0] = 0;
+		while (strcmp(inputline,";##") != 0)
+		{
+			getline(inputline,skelfile);
+			puts(inputline);
+		}
+}
+
+
+main(argc, argv)
+int argc;
+char *argv[];
+{
+
+	TestCnt = 0;
+	if (argc != 2) puts("Usage: ibml filename");
+	else
+	{
+		skelfile = fopen("ibmlinc.a","r");
+		if (skelfile == NULL)
+		{
+			puts("Error: Cannot find ibmlinc.a file");
+			exit(1);
+		}
+		yyin = fopen(argv[1],"r");
+		if (yyin == NULL)
+		{
+			puts("Error: Cannot open input file.");
+			exit(1);
+		}
+		nextsection();
+		yyparse();
+	}
+
+	return 0;
+}

@@ -1,0 +1,11 @@
+#repetitions 128,60000
+#code ("Zeroing al register with mov al,0")
+%do
+mov al, 0
+#encode
+
+#code ("Zeroing al register with xor al")
+%do
+xor al, al
+#encode
+#end
