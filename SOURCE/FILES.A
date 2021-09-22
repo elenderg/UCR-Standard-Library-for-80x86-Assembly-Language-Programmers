@@ -1,0 +1,126 @@
+StdGrp		group	stdlib, stddata
+;
+stddata		segment	para public 'sldata'
+stddata		ends
+stdlib		segment	para public 'slcode'
+;
+;***************************************************************************
+;
+; File I/O goodies
+;
+
+slcall	macro	adrs
+	db	09ah			;Far call
+	dd	stdgrp:adrs		;Address of routine to call
+	endm
+
+;
+fcreate		macro
+		ifndef	sl_fcreate
+stdlib		segment	para public 'slcode'
+		extrn	sl_fcreate:far
+stdlib		ends
+		endif
+		slcall	sl_fcreate
+		endm
+;
+fopen		macro
+		ifndef	sl_fopen
+stdlib		segment	para public 'slcode'
+		extrn	sl_fopen:far
+stdlib		ends
+		endif
+		slcall	sl_fopen
+		endm
+;
+fReadOn		macro
+		ifndef	sl_fReadOn
+stdlib		segment	para public 'slcode'
+		extrn	sl_fReadOn:far
+stdlib		ends
+		endif
+		slcall	sl_fReadOn
+		endm
+;
+fReadOff	macro
+		ifndef	sl_fReadOff
+stdlib		segment	para public 'slcode'
+		extrn	sl_fReadOff:far
+stdlib		ends
+		endif
+		slcall	sl_fReadOff
+		endm
+;
+fClose		macro
+		ifndef	sl_fClose
+stdlib		segment	para public 'slcode'
+		extrn	sl_fClose:far
+stdlib		ends
+		endif
+		slcall	sl_fClose
+		endm
+;
+fFlush		macro
+		ifndef	sl_fFlush
+stdlib		segment	para public 'slcode'
+		extrn	sl_fFlush:far
+stdlib		ends
+		endif
+		slcall	sl_fFlush
+		endm
+;
+fWriteOn	macro
+		ifndef	sl_fWriteOn
+stdlib		segment	para public 'slcode'
+		extrn	sl_fWriteOn:far
+stdlib		ends
+		endif
+		slcall	sl_fWriteOn
+		endm
+;
+fWriteOff	macro
+		ifndef	sl_fWriteOff
+stdlib		segment	para public 'slcode'
+		extrn	sl_fWriteOff:far
+stdlib		ends
+		endif
+		slcall	sl_fWriteOff
+		endm
+;
+fSeek		macro
+		ifndef	sl_fSeek
+stdlib		segment	para public 'slcode'
+		extrn	sl_fSeek:far
+stdlib		ends
+		endif
+		slcall	sl_fSeek
+		endm
+;
+DOSHandle	macro
+		ifndef	sl_DOSHandle
+stdlib		segment	para public 'slcode'
+		extrn	sl_DOSHandle:far
+stdlib		ends
+		endif
+		slcall	sl_DOSHandle
+		endm
+;
+fDel		macro
+		ifndef	sl_fDel
+stdlib		segment	para public 'slcode'
+		extrn	sl_fDel:far
+stdlib		ends
+		endif
+		slcall	sl_fDel
+		endm
+;
+fRename		macro
+		ifndef	sl_fRename
+stdlib		segment	para public 'slcode'
+		extrn	sl_fRename:far
+stdlib		ends
+		endif
+		slcall	sl_frename
+		endm
+stdlib		ends
+
